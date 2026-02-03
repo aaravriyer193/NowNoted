@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Metadata -->
+    <title>NowNoted. | Minimalist Infinite Outliner & Note Taking</title>
+    <meta name="description" content="A free, local, privacy-focused infinite outliner for focused thinking. Features nested lists, code blocks, dark mode, and distraction-free writing.">
+    <meta name="keywords" content="note taking, outliner, workflowy alternative, productivity, minimalist, local storage, code snippets, infinite list">
+    <meta name="author" content="NowNoted.">
+    <meta name="theme-color" content="#ffffff">
+    
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="NowNoted.">
+    <meta property="og:description" content="Capture your thoughts. Structure your mind. Minimalist, recursive, infinite.">
+    <meta property="og:site_name" content="NowNoted.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --sidebar-bg: #f9fafb;
+            --accent-color: #000000;
+            --subtle-color: #f3f4f6;
+            --border-color: #e5e7eb;
+            --selection-color: #e0e7ff;
+            --font-main: 'Quicksand', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --base-size: 18px;
+        }
+
+        body.dark-mode {
+            --bg-color: #111111;
+            --text-color: #e5e5e5;
+            --sidebar-bg: #1a1a1a;
+            --accent-color: #ffffff;
+            --subtle-color: #262626;
+            --border-color: #333333;
+            --selection-color: #404040;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.4s ease, color 0.4s ease;
+            overflow-x: hidden;
+            font-size: var(--base-size);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        /* Node Styling */
+        .node-input:empty:before {
+            content: attr(placeholder);
+            color: #9ca3af;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        .node-input:focus { outline: none; }
+        
+        /* Highlight for Search */
+        .highlight {
+            background-color: #fef08a; /* yellow-200 */
+            color: black;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+        body.dark-mode .highlight {
+            background-color: #854d0e; /* yellow-800 */
+            color: white;
+        }
+
+        .code-wrapper {
+            position: relative;
+            margin-top: 0.25rem;
+        }
+
+        .code-block {
+            font-family: var(--font-code);
+            background-color: var(--subtle-color);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+        
+        .code-block:focus {
+            border-color: #9ca3af;
+            outline: none;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            opacity: 0;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-color);
+            z-index: 10;
+        }
+        
+        .code-wrapper:hover .copy-btn { opacity: 1; }
+        .copy-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .copy-btn:active { transform: translateY(0); }
+
+        .bullet {
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .bullet:hover {
+            transform: scale(1.3);
+            background-color: var(--text-color);
+        }
+
+        /* Sidebar Transition */
+        #sidebar { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* Floating Toolbar */
+        #toolbar {
+            position: absolute;
+            z-index: 100;
+            display: none;
+            background: var(--text-color);
+            border-radius: 12px;
+            padding: 6px 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .toolbar-btn {
+            color: var(--bg-color);
+            padding: 6px 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.15s;
+        }
+        .toolbar-btn:hover { background-color: rgba(255,255,255,0.1); }
+
+        .strike { text-decoration: line-through; opacity: 0.6; }
+        
+        .arrow-icon { transition: transform 0.2s ease; color: #9ca3af; }
+        .arrow-icon:hover { color: var(--text-color); }
+        .arrow-icon.collapsed { transform: rotate(-90deg); }
+
+        /* Search Input */
+        .search-container {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .search-input {
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 8px 12px 8px 36px;
+            border-radius: 99px;
+            width: 40px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            color: transparent;
+        }
+        .search-input:focus, .search-input:not(:placeholder-shown) {
+            width: 200px;
+            background: var(--subtle-color);
+            border-color: transparent;
+            cursor: text;
+            color: var(--text-color);
+        }
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body class="min-h-screen selection:bg-[var(--selection-color)] selection:text-[var(--text-color)]">
+
+    <!-- LANDING PAGE -->
+    <div id="landing-page" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg-color)] transition-transform duration-700 ease-in-out">
+        <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-6">NowNoted.</h1>
+        <p class="text-xl text-gray-500 mb-12 max-w-md text-center leading-relaxed">Capture thoughts. Structure ideas.<br>Minimalist, recursive, infinite.</p>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4">
+            <button onclick="app.enterApp()" class="px-10 py-3.5 bg-[var(--text-color)] text-[var(--bg-color)] text-lg font-bold rounded-full hover:scale-105 transition-transform shadow-lg min-w-[200px]">
+                Start Thinking
+            </button>
+
+            <!-- GitHub Button -->
+            <a href="https://github.com/aaravriyer193/NowNoted" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-3 px-5 py-3.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 min-w-[200px] justify-center">
+                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                <div class="flex flex-col items-start leading-none">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Open Source</span>
+                    <span class="font-bold text-sm">View on GitHub</span>
+                </div>
+                <div class="ml-2 pl-3 border-l border-gray-700 flex items-center gap-1.5 text-yellow-400">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    <span id="gh-star-count" class="text-sm font-bold text-white font-mono">...</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="absolute bottom-8 text-sm text-gray-400">Local. Private. Fast.</div>
+    </div>
+
+    <!-- APP CONTAINER -->
+    <div id="app-container" class="opacity-0 transition-opacity duration-1000 min-h-screen flex flex-col items-center py-8 px-4 sm:px-8">
+        
+        <!-- Header -->
+        <header class="w-full max-w-3xl flex justify-between items-center mb-6 sticky top-0 bg-[var(--bg-color)]/90 backdrop-blur-sm z-30 py-4">
+            <h1 class="text-3xl font-bold tracking-tight lowercase cursor-pointer select-none hover:opacity-70 transition-opacity" onclick="app.zoomTo('root')" title="Go Home">NowNoted.</h1>
+            
+            <div class="flex items-center gap-2">
+                <!-- Search -->
+                <div class="search-container group">
+                    <svg class="search-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="search-input" class="search-input outline-none text-sm font-medium" placeholder="Search..." oninput="app.handleSearch(this.value)">
+                </div>
+
+                <!-- Sidebar Toggle -->
+                <button onclick="app.toggleSidebar()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--subtle-color)] transition-colors" aria-label="Settings">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Breadcrumbs -->
+        <nav id="breadcrumbs" class="w-full max-w-3xl mb-6 flex gap-2 text-sm font-semibold text-gray-500 overflow-x-auto pb-2 no-scrollbar" aria-label="Breadcrumb"></nav>
+
+        <!-- Main Editor -->
+        <main id="editor" class="w-full max-w-3xl min-h-[60vh] pb-32">
+            <div id="nodes-container" class="space-y-1"></div>
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-20 text-gray-400">
+                <p class="mb-2 italic">"The mind is not a vessel to be filled, but a fire to be kindled."</p>
+                <button onclick="app.addFirstNode()" class="mt-4 px-6 py-2 rounded-full border border-gray-300 hover:border-[var(--text-color)] hover:text-[var(--text-color)] transition-colors text-sm font-bold">Start Writing</button>
+            </div>
+
+            <!-- No Search Results -->
+            <div id="no-results" class="hidden text-center mt-20 text-gray-400">
+                <p>No matches found.</p>
+                <button onclick="app.clearSearch()" class="mt-4 underline text-sm">Clear Search</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar-overlay" onclick="app.toggleSidebar()" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+    <aside id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-[var(--sidebar-bg)] z-50 shadow-2xl transform translate-x-full p-8 flex flex-col overflow-y-auto border-l border-[var(--border-color)]">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold">Settings</h2>
+            <button onclick="app.toggleSidebar()" class="p-2 hover:bg-[var(--subtle-color)] rounded-full transition-colors">✕</button>
+        </div>
+
+        <div class="space-y-8 flex-1">
+            
+            <!-- Appearance -->
+            <section>
+                <h3 class="font-bold mb-4 text-gray-400 text-xs uppercase tracking-widest">Appearance</h3>
+                
+                <div class="flex items-center justify-between mb-6">
+                    <span class="font-medium text-sm">Dark Mode</span>
+                    <button onclick="app.toggleTheme()" id="theme-toggle" class="w-12 h-6 bg-gray-300 rounded-full relative transition-colors duration-300 cursor-pointer" aria-label="Toggle Dark Mode">
+                        <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 transition-transform duration-300 shadow-sm"></div>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="font-medium">Font Size</span>
+                        <span id="font-size-val" class="text-gray-500 font-mono text-xs bg-[var(--subtle-color)] px-2 py-0.5 rounded">18px</span>
+                    </div>
+                    <input type="range" min="14" max="24" value="18" step="1" oninput="app.setFontSize(this.value)" class="accent-[var(--text-color)]">
+                </div>
+            </section>
+
+            <hr class="border-[var(--border-color)]">
+
+            <!-- Help -->
+            <section>
+                <h3 class="font-bold mb-4 text-gray-400 text-xs uppercase tracking-widest">Shortcuts</h3>
+                <div class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-4 text-sm space-y-3 shadow-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">New Item</span>
+                        <kbd class="font-mono bg-[var(--subtle-color)] px-1.5 rounded text-[10px] border border-[var(--border-color)]">Enter</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Indent</span>
+                        <kbd class="font-mono bg-[var(--subtle-color)] px-1.5 rounded text-[10px] border border-[var(--border-color)]">Tab</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Unindent</span>
+                        <kbd class="font-mono bg-[var(--subtle-color)] px-1.5 rounded text-[10px] border border-[var(--border-color)]">Shift+Tab</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Zoom</span>
+                        <kbd class="font-mono bg-[var(--subtle-color)] px-1.5 rounded text-[10px] border border-[var(--border-color)]">Click Bullet</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Code Block</span>
+                        <kbd class="font-mono bg-[var(--subtle-color)] px-1.5 rounded text-[10px] border border-[var(--border-color)]">Select > &lt;/&gt;</kbd>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats -->
+            <section>
+                 <h3 class="font-bold mb-4 text-gray-400 text-xs uppercase tracking-widest">Statistics</h3>
+                 <div class="flex justify-between text-sm bg-[var(--bg-color)] p-4 rounded-xl border border-[var(--border-color)]">
+                    <span>Total Nodes</span>
+                    <span id="stat-count" class="font-bold font-mono">0</span>
+                </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="pt-4">
+                <button onclick="app.resetData()" class="w-full text-left px-4 py-3 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-between text-sm font-medium border border-transparent hover:border-red-200">
+                    <span>Clear All Data</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                </button>
+            </section>
+        </div>
+
+        <div class="text-[10px] text-gray-400 text-center mt-6">
+            v3.0 &bull; Auto-saving locally
+        </div>
+    </aside>
+
+    <!-- FLOATING TOOLBAR -->
+    <div id="toolbar">
+        <button class="toolbar-btn font-bold" onmousedown="event.preventDefault(); app.formatText('bold')" title="Bold">B</button>
+        <button class="toolbar-btn italic" onmousedown="event.preventDefault(); app.formatText('italic')" title="Italic">I</button>
+        <button class="toolbar-btn strike" onmousedown="event.preventDefault(); app.formatText('strikeThrough')" title="Strikethrough">S</button>
+        <div class="w-px h-4 bg-gray-500/30 mx-1 inline-block align-middle"></div>
+        <button class="toolbar-btn font-mono text-xs" onmousedown="event.preventDefault(); app.toggleCodeBlock()" title="Convert to Code Block">&lt;/&gt;</button>
+        <button class="toolbar-btn text-red-500 hover:bg-red-500/10 ml-1" onmousedown="event.preventDefault(); app.deleteNodeFromToolbar()" title="Delete Node">✕</button>
+    </div>
+
+    <script>
+        class NotedApp {
+            constructor() {
+                // Default State
+                const defaultData = {
+                    id: 'root',
+                    text: 'Home',
+                    type: 'text',
+                    children: [
+                        { id: 'start1', type: 'text', text: 'Welcome to NowNoted. v3.0', children: [], expanded: true, completed: false },
+                        { id: 'start2', type: 'text', text: 'Search is now available in the top right.', children: [], expanded: true, completed: false },
+                        { id: 'code_ex', type: 'code', text: 'console.log("Hover me to copy!");', children: [], expanded: true, completed: false },
+                        { id: 'start3', type: 'text', text: 'Click arrows to expand/collapse.', children: [
+                            { id: 'child1', type: 'text', text: 'I am a nested thought.', children: [], expanded: true, completed: false }
+                        ], expanded: true, completed: false },
+                    ],
+                    expanded: true
+                };
+
+                // Load
+                const savedData = localStorage.getItem('noted_data');
+                this.data = savedData ? JSON.parse(savedData) : defaultData;
+                
+                this.viewRootId = 'root';
+                this.focusedNodeId = null;
+                this.searchQuery = '';
+                
+                // Bindings
+                this.render = this.render.bind(this);
+                
+                // Listeners
+                document.addEventListener('selectionchange', () => this.updateToolbar());
+                
+                // Init Theme/Settings
+                if(localStorage.getItem('noted_theme') === 'dark') this.toggleTheme(true);
+                const savedSize = localStorage.getItem('noted_fontsize');
+                if(savedSize) this.setFontSize(savedSize);
+
+                // Fetch GitHub Stars
+                fetch('https://api.github.com/repos/aaravriyer193/NowNoted')
+                    .then(response => {
+                        if (response.ok) return response.json();
+                        throw new Error('Network response was not ok');
+                    })
+                    .then(data => {
+                        const starEl = document.getElementById('gh-star-count');
+                        if(starEl) starEl.innerText = data.stargazers_count;
+                    })
+                    .catch(error => {
+                        console.log('Error fetching stars:', error);
+                        const starEl = document.getElementById('gh-star-count');
+                        if(starEl) starEl.innerText = '0';
+                    });
+            }
+
+            // --- Persistence ---
+
+            save() {
+                localStorage.setItem('noted_data', JSON.stringify(this.data));
+            }
+
+            resetData() {
+                if(confirm("This will permanently delete your notes. Continue?")) {
+                    localStorage.removeItem('noted_data');
+                    location.reload();
+                }
+            }
+
+            // --- Lifecycle ---
+            
+            enterApp() {
+                const landing = document.getElementById('landing-page');
+                const appContainer = document.getElementById('app-container');
+                landing.style.transform = 'translateY(-100%)';
+                setTimeout(() => {
+                    appContainer.classList.remove('opacity-0');
+                    this.render();
+                }, 300);
+            }
+
+            uid() { return Math.random().toString(36).substr(2, 9); }
+
+            // --- Core Logic ---
+
+            findNode(id, nodes = [this.data]) {
+                if (id === 'root' && nodes[0].id === 'root') return nodes[0];
+                for (let node of nodes) {
+                    if (node.id === id) return node;
+                    if (node.children.length > 0) {
+                        const found = this.findNode(id, node.children);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+
+            findParent(childId, nodes = [this.data]) {
+                for (let node of nodes) {
+                    if (node.children.some(child => child.id === childId)) return node;
+                    if (node.children.length > 0) {
+                        const found = this.findParent(childId, node.children);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+
+            findPath(targetId, current = this.data, path = []) {
+                if (current.id === targetId) return [...path, current];
+                for (let child of current.children) {
+                    const result = this.findPath(targetId, child, [...path, current]);
+                    if (result) return result;
+                }
+                return null;
+            }
+
+            countNodes(nodes = this.data.children) {
+                let count = nodes.length;
+                nodes.forEach(n => count += this.countNodes(n.children));
+                return count;
+            }
+
+            // --- Search Logic ---
+
+            handleSearch(query) {
+                this.searchQuery = query.toLowerCase().trim();
+                this.render();
+            }
+
+            clearSearch() {
+                document.getElementById('search-input').value = '';
+                this.searchQuery = '';
+                this.render();
+            }
+
+            // Check if node or its descendants match query
+            filterNode(node) {
+                if (!this.searchQuery) return true;
+                const matchesSelf = node.text.toLowerCase().includes(this.searchQuery);
+                const matchesChildren = node.children.some(child => this.filterNode(child));
+                return matchesSelf || matchesChildren;
+            }
+
+            // Highlight Text
+            getHighlightedText(text) {
+                if (!this.searchQuery) return text;
+                const regex = new RegExp(`(${this.searchQuery})`, 'gi');
+                return text.replace(regex, '<span class="highlight">$1</span>');
+            }
+
+            // --- Actions ---
+
+            addFirstNode() { this.addNode('root'); }
+
+            addNode(parentId, afterNodeId = null, type = 'text') {
+                const parent = this.findNode(parentId);
+                if (!parent) return;
+
+                const newNode = { id: this.uid(), type: type, text: '', children: [], expanded: true, completed: false };
+                
+                if (afterNodeId) {
+                    const index = parent.children.findIndex(c => c.id === afterNodeId);
+                    parent.children.splice(index + 1, 0, newNode);
+                } else {
+                    parent.children.push(newNode);
+                }
+                
+                // If searching, cancel search on new node to avoid confusion
+                if (this.searchQuery) this.clearSearch();
+
+                this.render();
+                this.save();
+                this.focusNode(newNode.id);
+            }
+
+            deleteNode(id) {
+                const parent = this.findParent(id);
+                if (!parent) return;
+
+                const index = parent.children.findIndex(c => c.id === id);
+                let focusTargetId = null;
+                
+                if (index > 0) {
+                    const prev = parent.children[index - 1];
+                    // If searching, just focus the sibling, don't dive deep potentially into hidden nodes
+                    focusTargetId = this.searchQuery ? prev.id : this.getDeepestVisibleChild(prev).id;
+                } else {
+                    focusTargetId = parent.id !== 'root' ? parent.id : null;
+                }
+
+                parent.children.splice(index, 1);
+                this.render();
+                this.save();
+                if (focusTargetId) this.focusNode(focusTargetId);
+            }
+
+            indentNode(id) {
+                const parent = this.findParent(id);
+                if (!parent) return;
+                const index = parent.children.findIndex(c => c.id === id);
+                if (index === 0) return; 
+                const node = parent.children[index];
+                const newParent = parent.children[index - 1];
+                parent.children.splice(index, 1);
+                newParent.children.push(node);
+                newParent.expanded = true;
+                this.render();
+                this.save();
+                this.focusNode(id);
+            }
+
+            outdentNode(id) {
+                const parent = this.findParent(id);
+                if (!parent || parent.id === this.viewRootId || parent.id === 'root') return; 
+                const grantParent = this.findParent(parent.id);
+                if (!grantParent) return;
+                const index = parent.children.findIndex(c => c.id === id);
+                const node = parent.children[index];
+                const parentIndex = grantParent.children.findIndex(c => c.id === parent.id);
+                parent.children.splice(index, 1);
+                grantParent.children.splice(parentIndex + 1, 0, node);
+                this.render();
+                this.save();
+                this.focusNode(id);
+            }
+
+            toggleExpand(id) {
+                const node = this.findNode(id);
+                if (node) {
+                    node.expanded = !node.expanded;
+                    this.render();
+                    this.save();
+                }
+            }
+
+            zoomTo(id) {
+                this.viewRootId = id;
+                this.clearSearch(); // Clear search on zoom
+                this.render();
+            }
+
+            toggleCodeBlock() {
+                if (!this.focusedNodeId) return;
+                const node = this.findNode(this.focusedNodeId);
+                if (node) {
+                    node.type = node.type === 'code' ? 'text' : 'code';
+                    this.render();
+                    this.save();
+                    setTimeout(() => this.focusNode(node.id), 0);
+                    document.getElementById('toolbar').style.display = 'none';
+                }
+            }
+
+            updateNodeText(id, text) {
+                const node = this.findNode(id);
+                if (node) {
+                    node.text = text;
+                    this.save();
+                }
+            }
+            
+            copyCode(text, btn) {
+                const showSuccess = () => {
+                    btn.innerText = "Copied!";
+                    btn.style.color = "#10b981"; 
+                    setTimeout(() => {
+                        btn.innerText = "Copy";
+                        btn.style.color = "";
+                    }, 2000);
+                };
+
+                const useFallback = () => {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-9999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showSuccess();
+                    } catch (err) {
+                        console.error('Fallback copy failed', err);
+                        btn.innerText = "Error";
+                        setTimeout(() => btn.innerText = "Copy", 2000);
+                    }
+                    document.body.removeChild(textArea);
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text)
+                        .then(showSuccess)
+                        .catch(() => useFallback());
+                } else {
+                    useFallback();
+                }
+            }
+
+            // --- Navigation Helper ---
+            // Adjusted to respect search visibility if needed, 
+            // but for simplicity, arrow navigation follows strict structure
+            // Visual navigation would require a list of currently rendered IDs.
+
+            getDeepestVisibleChild(node) {
+                if (!node.children.length || !node.expanded) return node;
+                return this.getDeepestVisibleChild(node.children[node.children.length - 1]);
+            }
+
+            // Simplified linear traversal would be better for Arrow Keys, 
+            // but structure-based is more robust for editing.
+            getNextVisibleNode(id) {
+                const node = this.findNode(id);
+                if (node.children.length && node.expanded) return node.children[0];
+                const parent = this.findParent(id);
+                if (!parent) return null;
+                const findNext = (currId, currParent) => {
+                    const idx = currParent.children.findIndex(c => c.id === currId);
+                    if (idx < currParent.children.length - 1) return currParent.children[idx + 1];
+                    const grandParent = this.findParent(currParent.id);
+                    if (!grandParent || currParent.id === this.viewRootId) return null;
+                    return findNext(currParent.id, grandParent);
+                };
+                return findNext(id, parent);
+            }
+            
+            getPrevVisibleNode(id) {
+                const parent = this.findParent(id);
+                if (!parent) return null;
+                const index = parent.children.findIndex(c => c.id === id);
+                if (index > 0) {
+                    const prevSibling = parent.children[index - 1];
+                    return this.getDeepestVisibleChild(prevSibling);
+                } else {
+                    return parent.id === this.viewRootId ? null : parent;
+                }
+            }
+
+            // --- Rendering ---
+
+            render() {
+                const container = document.getElementById('nodes-container');
+                const breadcrumbs = document.getElementById('breadcrumbs');
+                
+                document.getElementById('stat-count').innerText = this.countNodes();
+
+                // Breadcrumbs
+                const path = this.findPath(this.viewRootId);
+                breadcrumbs.innerHTML = '';
+                if (path) {
+                    path.forEach((node, idx) => {
+                        const isLast = idx === path.length - 1;
+                        const span = document.createElement('span');
+                        span.className = `cursor-pointer hover:text-[var(--accent-color)] transition-colors whitespace-nowrap ${isLast ? 'text-[var(--text-color)] font-bold' : ''}`;
+                        span.innerText = node.id === 'root' ? 'Home' : node.text.substring(0, 15) + (node.text.length > 15 ? '...' : '');
+                        span.onclick = () => this.zoomTo(node.id);
+                        
+                        breadcrumbs.appendChild(span);
+                        if (!isLast) {
+                            const sep = document.createElement('span');
+                            sep.innerText = '/';
+                            sep.className = 'text-gray-300 mx-2';
+                            breadcrumbs.appendChild(sep);
+                        }
+                    });
+                }
+
+                // Render Nodes
+                container.innerHTML = '';
+                const rootNode = this.findNode(this.viewRootId);
+                
+                const visibleChildren = rootNode.children.filter(child => this.filterNode(child));
+
+                if (rootNode.children.length === 0) {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                    document.getElementById('no-results').classList.add('hidden');
+                } else if (visibleChildren.length === 0 && this.searchQuery) {
+                    document.getElementById('empty-state').classList.add('hidden');
+                    document.getElementById('no-results').classList.remove('hidden');
+                } else {
+                    document.getElementById('empty-state').classList.add('hidden');
+                    document.getElementById('no-results').classList.add('hidden');
+                    
+                    visibleChildren.forEach(child => {
+                        container.appendChild(this.createNodeElement(child));
+                    });
+                }
+            }
+
+            createNodeElement(node) {
+                const div = document.createElement('div');
+                div.className = 'flex flex-col ml-4 sm:ml-6 group animate-fade-in';
+                div.id = `node-${node.id}`;
+
+                // Search Expand Logic
+                // If searching and this node has matching children, force visual expansion
+                const isSearching = !!this.searchQuery;
+                const hasMatchingChildren = isSearching && node.children.some(c => this.filterNode(c));
+                const visualExpanded = isSearching ? (hasMatchingChildren || node.expanded) : node.expanded;
+
+                // Row
+                const row = document.createElement('div');
+                row.className = 'flex items-start gap-2 py-1 bullet-container relative';
+
+                // Bullet Container
+                const bulletWrapper = document.createElement('div');
+                bulletWrapper.className = 'mt-2 flex-shrink-0 relative flex items-center justify-center w-5 h-5';
+                
+                // Actual Bullet
+                const bullet = document.createElement('div');
+                const hasChildren = node.children.length > 0;
+                bullet.className = `w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 bullet ${hasChildren ? 'bg-[var(--text-color)] ring-2 ring-[var(--subtle-color)]' : ''}`;
+                bullet.onclick = (e) => { e.stopPropagation(); this.zoomTo(node.id); };
+
+                // Arrow Expander
+                if (hasChildren) {
+                    const expander = document.createElement('div');
+                    expander.className = 'absolute -left-6 w-6 h-6 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity select-none';
+                    if (window.matchMedia("(hover: none)").matches) expander.className = 'absolute -left-6 w-6 h-6 flex items-center justify-center cursor-pointer text-gray-400';
+
+                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    svg.setAttribute("width", "14");
+                    svg.setAttribute("height", "14");
+                    svg.setAttribute("viewBox", "0 0 24 24");
+                    svg.setAttribute("fill", "none");
+                    svg.setAttribute("stroke", "currentColor");
+                    svg.setAttribute("stroke-width", "2.5");
+                    svg.setAttribute("stroke-linecap", "round");
+                    svg.setAttribute("stroke-linejoin", "round");
+                    
+                    svg.classList.add("arrow-icon");
+                    if (!visualExpanded) svg.classList.add("collapsed");
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", "M6 9l6 6 6-6");
+                    
+                    svg.appendChild(path);
+                    expander.appendChild(svg);
+                    
+                    expander.onclick = (e) => { e.stopPropagation(); this.toggleExpand(node.id); }
+                    row.appendChild(expander);
+                }
+
+                bulletWrapper.appendChild(bullet);
+                row.appendChild(bulletWrapper);
+
+                // Content
+                if (node.type === 'code') {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'flex-1 min-w-0 code-wrapper';
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.innerText = "Copy";
+                    copyBtn.className = "copy-btn";
+                    copyBtn.contentEditable = false;
+                    copyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.copyCode(node.text, copyBtn);
+                    };
+
+                    const pre = document.createElement('pre');
+                    pre.className = `code-block flex-1 min-w-0 outline-none overflow-x-auto shadow-sm`;
+                    pre.contentEditable = true;
+                    pre.spellcheck = false;
+                    pre.innerText = node.text; // Text only, no HTML highlight in code for editing stability
+                    pre.id = `input-${node.id}`;
+                    
+                    // Attach events
+                    pre.onkeydown = (e) => this.handleKeydown(e, node.id, node.type);
+                    pre.oninput = (e) => this.updateNodeText(node.id, e.target.innerText);
+                    pre.onfocus = () => { this.focusedNodeId = node.id; };
+
+                    wrapper.appendChild(copyBtn);
+                    wrapper.appendChild(pre);
+                    row.appendChild(wrapper);
+
+                } else {
+                    const input = document.createElement('div');
+                    input.className = `node-input flex-1 min-w-0 break-words outline-none leading-relaxed px-1 rounded-md border border-transparent hover:border-[var(--subtle-color)] focus:border-transparent ${node.completed ? 'strike text-gray-400' : ''}`;
+                    input.contentEditable = true;
+                    input.spellcheck = false;
+                    
+                    // Highlight logic handles HTML injection. 
+                    // Warning: ContentEditable + InnerHTML replacement can reset cursor.
+                    // For robust editing during search, we only highlight if focused node is NOT this one,
+                    // OR simple innerText for editing.
+                    // Ideal: Only highlight in "Search Mode" (read onlyish) or complex range manipulation.
+                    // Simplest: If searching, show highlighted HTML. If focused, revert to plain text?
+                    // Let's keep it simple: Use innerHTML only for render, but if user types, it's raw text.
+                    
+                    if (this.searchQuery && node.text.toLowerCase().includes(this.searchQuery)) {
+                        input.innerHTML = this.getHighlightedText(node.text);
+                    } else {
+                        input.innerText = node.text;
+                    }
+
+                    input.id = `input-${node.id}`;
+                    input.placeholder = "Type a thought...";
+                    
+                    input.onkeydown = (e) => this.handleKeydown(e, node.id, node.type);
+                    input.oninput = (e) => {
+                         // Remove highlighting artifacts on edit
+                         this.updateNodeText(node.id, e.target.innerText);
+                    };
+                    input.onfocus = (e) => { 
+                        this.focusedNodeId = node.id;
+                        // Remove highlight on focus to prevent HTML editing issues
+                        if(input.innerHTML.includes('<span')) {
+                            input.innerText = node.text;
+                        }
+                    };
+                    input.onblur = () => {
+                         // Re-apply highlight if needed
+                         if (this.searchQuery) this.render();
+                    }
+                    
+                    row.appendChild(input);
+                }
+                
+                div.appendChild(row);
+
+                // Children
+                if (node.children.length > 0 && visualExpanded) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'border-l-2 border-[var(--subtle-color)] ml-2.5 pl-2.5 sm:ml-2.5 sm:pl-0 transition-all';
+                    
+                    node.children.forEach(child => {
+                        if (this.filterNode(child)) {
+                            childrenContainer.appendChild(this.createNodeElement(child));
+                        }
+                    });
+                    div.appendChild(childrenContainer);
+                }
+
+                return div;
+            }
+
+            // --- Handling ---
+
+            handleKeydown(e, id, type) {
+                if (type === 'code') {
+                    if (e.key === 'Enter') {
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.addNode(this.findParent(id).id, id);
+                        } else {
+                            e.stopPropagation(); 
+                        }
+                        return;
+                    }
+                }
+
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.ctrlKey) {
+                        this.findNode(id).completed = !this.findNode(id).completed;
+                        this.render();
+                        this.save();
+                    } else {
+                        this.addNode(this.findParent(id).id, id);
+                    }
+                } 
+                else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    e.shiftKey ? this.outdentNode(id) : this.indentNode(id);
+                }
+                else if (e.key === 'Backspace') {
+                    const node = this.findNode(id);
+                    if (node.type === 'code' && node.text.trim() === '') {
+                        e.preventDefault();
+                        node.type = 'text';
+                        this.render();
+                        this.save();
+                        return;
+                    }
+
+                    if (node.text === '' && !node.children.length) {
+                        e.preventDefault();
+                        this.deleteNode(id);
+                    } else if (window.getSelection().anchorOffset === 0 && !node.children.length) {
+                        e.preventDefault();
+                        const prev = this.getPrevVisibleNode(id);
+                        if(prev && prev.id !== this.viewRootId) {
+                            const originalText = node.text;
+                            this.deleteNode(id);
+                            setTimeout(() => {
+                                const prevEl = document.getElementById(`input-${prev.id}`);
+                                if(prevEl) {
+                                    prevEl.focus();
+                                    prevEl.innerText += originalText; 
+                                    this.updateNodeText(prev.id, prevEl.innerText);
+                                }
+                            }, 10);
+                        }
+                    }
+                }
+                else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prev = this.getPrevVisibleNode(id);
+                    if (prev) this.focusNode(prev.id);
+                }
+                else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const next = this.getNextVisibleNode(id);
+                    if (next) this.focusNode(next.id);
+                }
+            }
+
+            focusNode(id) {
+                this.focusedNodeId = id;
+                setTimeout(() => {
+                    const el = document.getElementById(`input-${id}`);
+                    if (el) {
+                        el.focus();
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(el);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }, 10);
+            }
+
+            // --- Toolbar ---
+
+            updateToolbar() {
+                const toolbar = document.getElementById('toolbar');
+                const selection = window.getSelection();
+                if (selection.isCollapsed || !selection.rangeCount) {
+                    toolbar.style.display = 'none';
+                    return;
+                }
+                // Don't show toolbar if selection is inside a code block (handled natively/differently)
+                if (selection.anchorNode.parentElement.closest('.code-block')) {
+                    // Optional: keep it hidden for code
+                }
+
+                const rect = selection.getRangeAt(0).getBoundingClientRect();
+                if(rect.width === 0) { toolbar.style.display = 'none'; return; }
+
+                toolbar.style.display = 'flex';
+                toolbar.style.top = `${window.scrollY + rect.top - 50}px`;
+                toolbar.style.left = `${window.scrollX + rect.left + (rect.width/2) - (toolbar.offsetWidth/2)}px`;
+            }
+
+            formatText(cmd) { document.execCommand(cmd, false, null); }
+            
+            deleteNodeFromToolbar() {
+                if(this.focusedNodeId) {
+                    this.deleteNode(this.focusedNodeId);
+                    document.getElementById('toolbar').style.display = 'none';
+                }
+            }
+
+            // --- Sidebar & Theme ---
+
+            toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                
+                if (sidebar.classList.contains('translate-x-full')) {
+                    sidebar.classList.remove('translate-x-full');
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+                } else {
+                    sidebar.classList.add('translate-x-full');
+                    overlay.classList.add('opacity-0');
+                    setTimeout(() => overlay.classList.add('hidden'), 300);
+                }
+            }
+
+            toggleTheme(forceDark = null) {
+                const body = document.body;
+                const toggle = document.getElementById('theme-toggle').firstElementChild;
+                
+                if (forceDark === true || (forceDark === null && !this.isDarkMode)) {
+                    this.isDarkMode = true;
+                    body.classList.add('dark-mode');
+                    toggle.style.transform = 'translateX(24px)';
+                    localStorage.setItem('noted_theme', 'dark');
+                } else {
+                    this.isDarkMode = false;
+                    body.classList.remove('dark-mode');
+                    toggle.style.transform = 'translateX(0)';
+                    localStorage.setItem('noted_theme', 'light');
+                }
+            }
+
+            setFontSize(size) {
+                document.documentElement.style.setProperty('--base-size', size + 'px');
+                document.getElementById('font-size-val').innerText = size + 'px';
+                localStorage.setItem('noted_fontsize', size);
+            }
+        }
+
+        const app = new NotedApp();
+    </script>
+</body>
+</html>
